@@ -1,5 +1,3 @@
-Here’s a funny and catchy README template for your Discord bot’s GitHub repo:
-🎉 MyEpicBot 🤖
 
 The Discord bot you didn't know you needed, but now can't live without!
 
