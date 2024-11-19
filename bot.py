@@ -319,9 +319,9 @@ async def on_command_error(ctx, error):
 
 @bot.event
 async def on_ready():
-    print(f'{bot.user} has connected to Discord!')
+    print(f"🎉 {bot.user} is now online and ready to rock Discord!")
     await bot.change_presence(
-        activity=discord.Game(name="Moderating | !help")
+        activity=discord.Game(name="Keeping the chaos in check | Type !help 🎮")
     )
 
 # Run the bot
