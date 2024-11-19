@@ -340,7 +340,7 @@ async def on_ready():
         if filename.endswith(".py"):
             cog_name = f"cogs.{filename[:-3]}"
             try:
-                bot.load_extension(cog_name)
+               await bot.load_extension(cog_name)
                 print(f"✅ Loaded {cog_name}")
             except Exception as e:
                 print(f"❌ Failed to load {cog_name}: {e}")
