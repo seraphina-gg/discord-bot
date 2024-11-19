@@ -20,15 +20,12 @@ class ModBot(commands.Bot):
         self.muted_roles = {}
         self.setup_logging()
 
-                
     def setup_logging(self):
         self.logger = logging.getLogger('mod_bot')
         self.logger.setLevel(logging.INFO)
         handler = logging.FileHandler('mod_logs.log', encoding='utf-8')
         handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
         self.logger.addHandler(handler)
-
-bot = ModBot()
 
 # Utility Functions
 def get_current_time():
@@ -102,11 +99,7 @@ async def help(ctx):
 @bot.command()
 @commands.has_permissions(kick_members=True)
 async def warn(ctx, member: Optional[discord.Member] = None, *, reason="No reason provided"):
-    """
-    Warn a member
-    Usage: !warn @member [reason]
-    Example: !warn @user Spamming in chat
-    """
+    """Warn a member"""
     if not member:
         embed = discord.Embed(
             title="Command Help: Warn",
@@ -157,12 +150,7 @@ async def warn(ctx, member: Optional[discord.Member] = None, *, reason="No reaso
 @bot.command()
 @commands.has_permissions(kick_members=True)
 async def mute(ctx, member: Optional[discord.Member] = None, duration: Optional[str] = None, *, reason="No reason provided"):
-    """
-    Mute a member
-    Usage: !mute @member [duration] [reason]
-    Example: !mute @user 1h Spamming
-    Duration format: s (seconds), m (minutes), h (hours), d (days)
-    """
+    """Mute a member"""
     if not member or not duration:
         embed = discord.Embed(
             title="Command Help: Mute",
@@ -203,11 +191,7 @@ async def mute(ctx, member: Optional[discord.Member] = None, duration: Optional[
 @bot.command()
 @commands.has_permissions(kick_members=True)
 async def unmute(ctx, member: Optional[discord.Member] = None):
-    """
-    Unmute a member
-    Usage: !unmute @member
-    Example: !unmute @user
-    """
+    """Unmute a member"""
     if not member:
         embed = discord.Embed(
             title="Command Help: Unmute",
@@ -221,147 +205,24 @@ async def unmute(ctx, member: Optional[discord.Member] = None):
 
     muted_role = await get_muted_role(ctx.guild)
     if muted_role not in member.roles:
-        await ctx.send("❌ This member is not muted!")
+        await ctx.send("❌ The user is not muted!")
         return
+    
+    await member.remove_roles(muted_role, reason="Unmute command issued")
+    await ctx.send(f"✅ {member.mention} has been unmuted.")
 
-    await member.remove_roles(muted_role, reason="Manual unmute")
-    await log_action(ctx.guild, "Unmute", ctx.author, member, "Manual unmute")
-    await ctx.send(f"✅ {member.mention} has been unmuted")
-
-@commands.command()
+@bot.command()
 @commands.has_permissions(kick_members=True)
-async def kick(self, ctx, member: discord.Member = None, *, reason="No reason provided"):
-    """
-    Kick a user like a football from the server.
-    """
-    if not member:
-        await ctx.send("❌ Please mention a user to kick. You cant kick the Air!")
-        return
-
+async def kick(ctx, member: discord.Member, *, reason="No reason provided"):
+    """Kick a member"""
     if member.top_role >= ctx.author.top_role:
-        await ctx.send("❌ You cannot kick members with an equal or higher role. Sorry lil bro/sis")
+        await ctx.send("❌ You cannot kick members with equal or higher role!")
         return
 
     await member.kick(reason=reason)
     await log_action(ctx.guild, "Kick", ctx.author, member, reason)
-    await ctx.send(f"✅ {member.mention} has been kicked and you Scored a point +1 Aura")
+    await ctx.send(f"✅ {member.mention} has been kicked for {reason}")
 
-
-# Information Commands
-@bot.command()
-async def userinfo(ctx, member: Optional[discord.Member] = None):
-    """Get information about a user"""
-    member = member or ctx.author
-    
-    roles = [role.mention for role in member.roles[1:]]  # Exclude @everyone
-    embed = discord.Embed(
-        title="User Information",
-        color=member.color,
-        timestamp=get_current_time()
-    )
-    
-    embed.set_thumbnail(url=member.avatar.url if member.avatar else member.default_avatar.url)
-    embed.add_field(name="User ID", value=member.id)
-    embed.add_field(name="Nickname", value=member.nick or "None")
-    embed.add_field(name="Account Created", value=member.created_at.strftime("%Y-%m-%d"))
-    embed.add_field(name="Joined Server", value=member.joined_at.strftime("%Y-%m-%d"))
-    embed.add_field(name="Roles", value=" ".join(roles) if roles else "None", inline=False)
-    
-    await ctx.send(embed=embed)
-
-@bot.command()
-async def serverinfo(ctx):
-    """Get information about the server"""
-    guild = ctx.guild
-    
-    embed = discord.Embed(
-        title=f"{guild.name} Server Information",
-        color=discord.Color.blue(),
-        timestamp=get_current_time()
-    )
-    
-    embed.set_thumbnail(url=guild.icon.url if guild.icon else None)
-    embed.add_field(name="Server ID", value=guild.id)
-    embed.add_field(name="Owner", value=guild.owner.mention)
-    embed.add_field(name="Created On", value=guild.created_at.strftime("%Y-%m-%d"))
-    embed.add_field(name="Member Count", value=guild.member_count)
-    embed.add_field(name="Channel Count", value=len(guild.channels))
-    embed.add_field(name="Role Count", value=len(guild.roles))
-    
-    await ctx.send(embed=embed)
-
-# Auto-moderation features
-@bot.event
-async def on_message(message):
-    if message.author.bot:
-        return
-
-    # Process commands first
-    await bot.process_commands(message)
-
-    # Spam detection
-    current_time = get_current_time()
-    bot.spam_detection[message.author.id].append(current_time)
-    recent_messages = [
-        t for t in bot.spam_detection[message.author.id]
-        if (current_time - t).total_seconds() < 5
-    ]
-    bot.spam_detection[message.author.id] = recent_messages
-
-    if len(recent_messages) >= 5:
-        await message.author.timeout(timedelta(minutes=10), reason="Spam detection")
-        await message.channel.send(
-            embed=discord.Embed(
-                title="Auto-Moderation",
-                description=f"{message.author.mention} has been timed out for spamming.",
-                color=discord.Color.red()
-            )
-        )
-        await log_action(message.guild, "Auto-Timeout", bot.user, message.author, "Spam detection")
-
-    # Bad word filter and more can be added here
-
-@bot.event
-async def on_command_error(ctx, error):
-    """Enhanced error handling"""
-    if isinstance(error, commands.MissingPermissions):
-        perms = ', '.join(error.missing_permissions)
-        await ctx.send(f"❌ You need the following permissions to use this command: {perms}")
-    elif isinstance(error, commands.MemberNotFound):
-        await ctx.send(f"❌ Could not find member. Please mention a valid member or use their ID.")
-    elif isinstance(error, commands.BadArgument):
-        if ctx.command:
-            await ctx.send_help(ctx.command)
-        else:
-            await ctx.send("❌ Invalid argument provided! Use !help for command usage.")
-    else:
-        await ctx.send(f"❌ An error occurred: {str(error)}")
-        bot.logger.error(f"Command error in {ctx.command}: {str(error)}")
-
-@bot.event
-async def on_ready():
-    print(f"🎉 {bot.user} is now online and ready to rock Discord!")
-    activities = [
-        "Keeping the chaos in check | Type !help 🎮",
-        "Moderating the server | Stay cool 😎",
-        "Kicking troublemakers | 😈",
-        "Type !help to see what I can do!"
-    ]
-    
-    async def cycle_status():
-        while True:
-            for activity in activities:
-                await bot.change_presence(activity=discord.Game(name=activity))
-                await asyncio.sleep(30)  # Waits 30 seconds before changing
-    
-    bot.loop.create_task(cycle_status())
-    for filename in os.listdir("./cogs"):
-        if filename.endswith(".py"):
-            cog_name = f"cogs.{filename[:-3]}"
-            try:
-               await bot.load_extension(cog_name)
-                print(f"✅ Loaded {cog_name}")
-            except Exception as e:
-                print(f"❌ Failed to load {cog_name}: {e}")
-
-bot.run('')
+# Run the bot
+bot = ModBot()
+bot.run('YOUR_BOT_TOKEN')
