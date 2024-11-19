@@ -18,11 +18,7 @@ class ModBot(commands.Bot):
         self.auto_mod_settings = {}
         self.muted_roles = {}
         self.setup_logging()
-    async def setup_hook(self):
-    for filename in os.listdir('./cogs'):
-        if filename.endswith('.py') and not filename.startswith('__'):
-            await self.load_extension(f'cogs.{filename[:-3]}')
-            print(f"Loaded cog: {filename}")
+
                 
     def setup_logging(self):
         self.logger = logging.getLogger('mod_bot')
@@ -325,9 +321,27 @@ async def on_command_error(ctx, error):
 @bot.event
 async def on_ready():
     print(f"🎉 {bot.user} is now online and ready to rock Discord!")
-    await bot.change_presence(
-        activity=discord.Game(name="Keeping the chaos in check | Type !help 🎮")
-    )
+    activities = [
+        "Keeping the chaos in check | Type !help 🎮",
+        "Moderating the server | Stay cool 😎",
+        "Kicking troublemakers | 😈",
+        "Type !help to see what I can do!"
+    ]
+    
+    async def cycle_status():
+        while True:
+            for activity in activities:
+                await bot.change_presence(activity=discord.Game(name=activity))
+                await asyncio.sleep(30)  # Waits 30 seconds before changing
+    
+    bot.loop.create_task(cycle_status())
+    for filename in os.listdir("./cogs"):
+        if filename.endswith(".py"):
+            cog_name = f"cogs.{filename[:-3]}"
+            try:
+                bot.load_extension(cog_name)
+                print(f"✅ Loaded {cog_name}")
+            except Exception as e:
+                print(f"❌ Failed to load {cog_name}: {e}")
 
-# Run the bot
 bot.run('')
