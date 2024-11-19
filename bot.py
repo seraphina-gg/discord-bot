@@ -7,6 +7,7 @@ import re
 from typing import Optional, Union
 import logging
 from collections import defaultdict
+import os
 
 class ModBot(commands.Bot):
     def __init__(self):
