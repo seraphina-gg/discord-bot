@@ -20,13 +20,34 @@ class ModBot(commands.Bot):
         self.muted_roles = {}
         self.setup_logging()
 
-                
     def setup_logging(self):
         self.logger = logging.getLogger('mod_bot')
         self.logger.setLevel(logging.INFO)
         handler = logging.FileHandler('mod_logs.log', encoding='utf-8')
         handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
         self.logger.addHandler(handler)
+
+    @commands.has_permissions(kick_members=True)
+    async def kick(self, ctx, member: Optional[discord.Member] = None, *, reason="No reason provided"):
+        """Kick a member"""
+        if not member:
+            embed = discord.Embed(
+                title="Command Help: Kick",
+                description="Kick a member with optional reason",
+                color=discord.Color.blue()
+            )
+            embed.add_field(name="Usage", value="!kick @member [reason]")
+            embed.add_field(name="Example", value="!kick @user Violating rules")
+            await ctx.send(embed=embed)
+            return
+
+        if member.top_role >= ctx.author.top_role:
+            await ctx.send("❌ You cannot kick members with equal or higher role!")
+            return
+
+        await member.kick(reason=reason)
+        await log_action(ctx.guild, "Kick", ctx.author, member, reason)
+        await ctx.send(f"✅ {member.mention} has been kicked. Reason: {reason}")
 
 bot = ModBot()
 
@@ -211,22 +232,25 @@ async def unmute(ctx, member: Optional[discord.Member] = None):
     if not member:
         embed = discord.Embed(
             title="Command Help: Unmute",
-            description="Unmute a previously muted member",
+            description="Unmute a member",
             color=discord.Color.blue()
         )
         embed.add_field(name="Usage", value="!unmute @member")
-        embed.add_field(name="Example", value="!unmute @user")
         await ctx.send(embed=embed)
         return
 
     muted_role = await get_muted_role(ctx.guild)
     if muted_role not in member.roles:
-        await ctx.send("❌ This member is not muted!")
+        await ctx.send(f"❌ {member.mention} is not muted!")
         return
 
-    await member.remove_roles(muted_role, reason="Manual unmute")
+    await member.remove_roles(muted_role, reason="Unmute command issued")
     await log_action(ctx.guild, "Unmute", ctx.author, member, "Manual unmute")
-    await ctx.send(f"✅ {member.mention} has been unmuted")
+    await ctx.send(f"✅ {member.mention} has been unmuted.")
+
+# Running the bot
+bot.run('YOUR_BOT_TOKEN')
+
 
 @commands.command()
 @commands.has_permissions(kick_members=True)
