@@ -228,6 +228,25 @@ async def unmute(ctx, member: Optional[discord.Member] = None):
     await log_action(ctx.guild, "Unmute", ctx.author, member, "Manual unmute")
     await ctx.send(f"✅ {member.mention} has been unmuted")
 
+@commands.command()
+@commands.has_permissions(kick_members=True)
+async def kick(self, ctx, member: discord.Member = None, *, reason="No reason provided"):
+    """
+    Kick a user like a football from the server.
+    """
+    if not member:
+        await ctx.send("❌ Please mention a user to kick. You cant kick the Air!")
+        return
+
+    if member.top_role >= ctx.author.top_role:
+        await ctx.send("❌ You cannot kick members with an equal or higher role. Sorry lil bro/sis")
+        return
+
+    await member.kick(reason=reason)
+    await log_action(ctx.guild, "Kick", ctx.author, member, reason)
+    await ctx.send(f"✅ {member.mention} has been kicked and you Scored a point +1 Aura")
+
+
 # Information Commands
 @bot.command()
 async def userinfo(ctx, member: Optional[discord.Member] = None):
