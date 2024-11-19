@@ -18,7 +18,12 @@ class ModBot(commands.Bot):
         self.auto_mod_settings = {}
         self.muted_roles = {}
         self.setup_logging()
-        
+    async def setup_hook(self):
+    for filename in os.listdir('./cogs'):
+        if filename.endswith('.py') and not filename.startswith('__'):
+            await self.load_extension(f'cogs.{filename[:-3]}')
+            print(f"Loaded cog: {filename}")
+                
     def setup_logging(self):
         self.logger = logging.getLogger('mod_bot')
         self.logger.setLevel(logging.INFO)
